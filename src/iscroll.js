@@ -1087,6 +1087,15 @@ iScroll.prototype = {
 	isReady: function () {
 		return !this.moved && !this.zoomed && !this.animating;
 	}
+
+    ,
+    currentPageX: function () {
+        return this.currPageX;
+    },
+
+    currentPageY: function () {
+        return this.currPageY;
+    }
 };
 
 function prefixStyle (style) {
