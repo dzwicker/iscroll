@@ -101,6 +101,7 @@ var m = Math,
 			topOffset: 0,
 			checkDOMChanges: false,		// Experimental
 			handleClick: true,
+            wheelSpeed: 12,
 
 			// Scrollbar
 			hScrollbar: true,
@@ -660,10 +661,10 @@ iScroll.prototype = {
 			deltaScale;
 
 		if ('wheelDeltaX' in e) {
-			wheelDeltaX = e.wheelDeltaX / 12;
-			wheelDeltaY = e.wheelDeltaY / 12;
+			wheelDeltaX = e.wheelDeltaX / that.options.wheelSpeed;
+			wheelDeltaY = e.wheelDeltaY / that.options.wheelSpeed;
 		} else if('wheelDelta' in e) {
-			wheelDeltaX = wheelDeltaY = e.wheelDelta / 12;
+			wheelDeltaX = wheelDeltaY = e.wheelDelta / that.options.wheelSpeed;
 		} else if ('detail' in e) {
 			wheelDeltaX = wheelDeltaY = -e.detail * 3;
 		} else {
