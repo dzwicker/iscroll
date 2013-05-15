@@ -122,9 +122,6 @@ var m = Math,
 			snap: false,
 			snapThreshold: 1,
 
-            // Event control
-            detectTouch: true,
-
 			// Events
 			onRefresh: null,
 			onBeforeScrollStart: function (that, e) { e.preventDefault(); },
@@ -142,13 +139,6 @@ var m = Math,
 
 		// User defined options
 		for (i in options) that.options[i] = options[i];
-
-        // configuring events
-        that.useTouchEvents = (that.options.detectTouch &&  hasTouch);
-        that.START_EV = that.useTouchEvents? 'touchstart' : 'mousedown';
-        that.MOVE_EV = that.useTouchEvents ? 'touchmove' : 'mousemove';
-        that.END_EV = that.useTouchEvents ? 'touchend' : 'mouseup';
-        that.CANCEL_EV = that.useTouchEvents ? 'touchcancel' : 'mouseup';
 
 		// Set starting position
 		that.x = that.options.x;
@@ -182,11 +172,14 @@ var m = Math,
 		that.refresh();
 
 		that._bind(RESIZE_EV, window);
-		that._bind(that.START_EV);
-		if (!that.useTouchEvents) {
-			if (that.options.wheelAction != 'none')
-				that._bind(WHEEL_EV);
-		}
+
+        that._bind('mousedown');
+        if(that.hasTouch) {
+            that._bind('touchstart');
+        }
+		if (that.options.wheelAction != 'none') {
+			that._bind(WHEEL_EV);
+        }
 
 		if (that.options.checkDOMChanges) that.checkDOMTime = setInterval(function () {
 			that._checkDOMChanges();
@@ -208,15 +201,23 @@ iScroll.prototype = {
 	handleEvent: function (e) {
 		var that = this;
 		switch(e.type) {
-			case that.START_EV:
-				if (!that.useTouchEvents && e.button !== 0) return;
+            case 'mousedown':
+				if (e.button !== 0) return;
+            case 'touchstart':
 				that._start(e);
 				break;
-			case that.MOVE_EV: that._move(e); break;
-			case that.END_EV:
-			case that.CANCEL_EV: that._end(e); break;
+            case 'touchmove':
+            case 'mousemove':
+                that._move(e); break;
+            case 'touchend':
+            case 'mouseup':
+            case 'touchcancel':
+            case 'mouseup':
+			    that._end(e); break;
 			case RESIZE_EV: that._resize(); break;
-			case 'DOMMouseScroll': case 'mousewheel': that._wheel(e); break;
+			case 'DOMMouseScroll':
+            case 'mousewheel':
+                that._wheel(e); break;
 			case TRNEND_EV: that._transitionEnd(e); break;
 		}
 	},
@@ -346,7 +347,7 @@ iScroll.prototype = {
 
 	_start: function (e) {
 		var that = this,
-			point = that.useTouchEvents ? e.touches[0] : e,
+			point = e.touches ? e.touches[0] : e,
 			matrix, x, y,
 			c1, c2;
 
@@ -367,7 +368,7 @@ iScroll.prototype = {
 		that.dirY = 0;
 
 		// Gesture start
-		if (that.options.zoom && that.useTouchEvents && e.touches.length > 1) {
+		if (that.options.zoom && e.touches && e.touches.length > 1) {
 			c1 = m.abs(e.touches[0].pageX-e.touches[1].pageX);
 			c2 = m.abs(e.touches[0].pageY-e.touches[1].pageY);
 			that.touchesDistStart = m.sqrt(c1 * c1 + c2 * c2);
@@ -410,14 +411,19 @@ iScroll.prototype = {
 
 		if (that.options.onScrollStart) that.options.onScrollStart(that, e);
 
-		that._bind(that.MOVE_EV, window);
-		that._bind(that.END_EV, window);
-		that._bind(that.CANCEL_EV, window);
+		that._bind('mousemove', window);
+        that._bind('mouseup', window);
+
+        if(that.hasTouch) {
+		    that._bind('touchmove', window);
+            that._bind('touchend', window);
+		    that._bind('touchcancel', window);
+        }
 	},
 
 	_move: function (e) {
 		var that = this,
-			point = that.useTouchEvents ? e.touches[0] : e,
+			point = e.touches ? e.touches[0] : e,
 			deltaX = point.pageX - that.pointX,
 			deltaY = point.pageY - that.pointY,
 			newX = that.x + deltaX,
@@ -428,7 +434,7 @@ iScroll.prototype = {
 		if (that.options.onBeforeScrollMove) that.options.onBeforeScrollMove(that, e);
 
 		// Zoom
-		if (that.options.zoom && that.useTouchEvents && e.touches.length > 1) {
+		if (that.options.zoom && e.touches && e.touches.length > 1) {
 			c1 = m.abs(e.touches[0].pageX - e.touches[1].pageX);
 			c2 = m.abs(e.touches[0].pageY - e.touches[1].pageY);
 			that.touchesDist = m.sqrt(c1*c1+c2*c2);
@@ -496,10 +502,10 @@ iScroll.prototype = {
 	},
 
 	_end: function (e) {
-		if (this.useTouchEvents && e.touches.length !== 0) return;
+		if (e.touches && e.touches.length !== 0) return;
 
 		var that = this,
-			point = that.useTouchEvents ? e.changedTouches[0] : e,
+			point = e.changedTouches ? e.changedTouches[0] : e,
 			target, ev,
 			momentumX = { dist:0, time:0 },
 			momentumY = { dist:0, time:0 },
@@ -511,9 +517,11 @@ iScroll.prototype = {
 			snap,
 			scale;
 
-		that._unbind(that.MOVE_EV, window);
-		that._unbind(that.END_EV, window);
-		that._unbind(that.CANCEL_EV, window);
+		that._unbind('touchmove', window);
+		that._unbind('mousemove', window);
+		that._unbind('touchend', window);
+		that._unbind('mouseup', window);
+		that._unbind('touchcancel', window);
 
 		if (that.options.onBeforeScrollEnd) that.options.onBeforeScrollEnd(that, e);
 
@@ -538,7 +546,7 @@ iScroll.prototype = {
 		}
 
 		if (!that.moved) {
-			if (that.useTouchEvents) {
+			if (e.touches) {
 				if (that.doubleTapTimer && that.options.zoom) {
 					// Double tapped
 					clearTimeout(that.doubleTapTimer);
@@ -894,14 +902,13 @@ iScroll.prototype = {
 
 		// Remove the event listeners
 		that._unbind(RESIZE_EV, window);
-		that._unbind(that.START_EV);
-		that._unbind(that.MOVE_EV, window);
-		that._unbind(that.END_EV, window);
-		that._unbind(that.CANCEL_EV, window);
-
-		if (!that.useTouchEvents) {
-			that._unbind(WHEEL_EV);
-		}
+        that._unbind('touchstart');
+        that._unbind('mousedown');
+		that._unbind('touchmove', window);
+		that._unbind('mousemove', window);
+        that._unbind('mouseup', window);
+		that._unbind('touchcancel', window);
+		that._unbind(WHEEL_EV);
 
 		if (that.options.useTransition) that._unbind(TRNEND_EV);
 
@@ -1051,9 +1058,11 @@ iScroll.prototype = {
 		this.enabled = false;
 
 		// If disabled after touchstart we make sure that there are no left over events
-		this._unbind(this.MOVE_EV, window);
-		this._unbind(this.END_EV, window);
-		this._unbind(this.CANCEL_EV, window);
+        this._unbind('touchmove', window);
+        this._unbind('mousemove', window);
+        this._unbind('mouseup', window);
+        this._unbind('touchend', window);
+		this._unbind('touchcancel', window);
 	},
 
 	enable: function () {
