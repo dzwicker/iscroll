@@ -174,7 +174,7 @@ var m = Math,
 		that._bind(RESIZE_EV, window);
 
         that._bind('mousedown');
-        if(that.hasTouch) {
+        if(hasTouch) {
             that._bind('touchstart');
         }
 		if (that.options.wheelAction != 'none') {
@@ -414,7 +414,7 @@ iScroll.prototype = {
 		that._bind('mousemove', window);
         that._bind('mouseup', window);
 
-        if(that.hasTouch) {
+        if(hasTouch) {
 		    that._bind('touchmove', window);
             that._bind('touchend', window);
 		    that._bind('touchcancel', window);
